@@ -1,0 +1,5 @@
+/pim
+*.test
+*.out
+coverage.*
+.DS_Store
