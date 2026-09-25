@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -16,6 +17,72 @@ import (
 	"github.com/limars874/pim/library"
 	"github.com/limars874/pim/tui"
 )
+
+func TestExecuteHelpPrintsResolvedPathsWithoutLaunchingTUI(t *testing.T) {
+	customDir := filepath.Join(t.TempDir(), "custom-agent")
+	t.Setenv("PI_CODING_AGENT_DIR", customDir)
+
+	for _, flag := range []string{"-h", "--help", "help"} {
+		t.Run(flag, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			code := execute([]string{flag}, &stdout, &stderr, func(library.Paths) error {
+				t.Fatal("launch must not be called for help")
+				return nil
+			})
+			if code != 0 {
+				t.Fatalf("execute(%q) code = %d, stderr = %q; want 0", flag, code, stderr.String())
+			}
+			if stderr.Len() != 0 {
+				t.Fatalf("execute(%q) stderr = %q; want empty", flag, stderr.String())
+			}
+			out := stdout.String()
+			for _, want := range []string{
+				"pim - Terminal UI for managing Pi custom provider/model libraries",
+				"PI_CODING_AGENT_DIR",
+				"Agent dir:      " + customDir,
+				"Active config:  " + filepath.Join(customDir, "models.json"),
+				"Provider lib:   " + filepath.Join(customDir, "model-library", "providers"),
+				"Backup history: " + filepath.Join(customDir, "model-library", "history"),
+			} {
+				if !strings.Contains(out, want) {
+					t.Fatalf("help output missing %q in:\n%s", want, out)
+				}
+			}
+		})
+	}
+}
+
+func TestExecuteRejectsUnknownArguments(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := execute([]string{"--unknown"}, &stdout, &stderr, func(library.Paths) error {
+		t.Fatal("launch must not be called for unknown argument")
+		return nil
+	})
+	if code != 2 {
+		t.Fatalf("execute(--unknown) code = %d; want 2", code)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q; want empty", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), `unexpected argument "--unknown"`) {
+		t.Fatalf("stderr = %q; want unexpected argument message", stderr.String())
+	}
+}
+
+func TestExecuteLaunchesTUIWhenNoArgs(t *testing.T) {
+	customDir := filepath.Join(t.TempDir(), "agent")
+	t.Setenv("PI_CODING_AGENT_DIR", customDir)
+
+	var stdout, stderr bytes.Buffer
+	var gotPaths library.Paths
+	code := execute(nil, &stdout, &stderr, func(paths library.Paths) error {
+		gotPaths = paths
+		return nil
+	})
+	if code != 0 || gotPaths.AgentDir != customDir {
+		t.Fatalf("execute(nil) = code %d, paths %#v; want 0, %q", code, gotPaths, customDir)
+	}
+}
 
 func TestRepairCallbackAppliesReconciledSelectionSafely(t *testing.T) {
 	paths, source, active, old := repairFixture(t)

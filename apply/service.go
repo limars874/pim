@@ -125,7 +125,7 @@ func (s Service) syncDirectory(dir string) error {
 }
 
 func (s Service) historyDir() string {
-	return filepath.Join(s.Paths.AgentDir, "model-library", "history")
+	return s.Paths.HistoryDir()
 }
 
 func (s Service) now() time.Time {

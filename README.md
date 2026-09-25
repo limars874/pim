@@ -32,6 +32,7 @@ Make sure the selected install directory is on `PATH`, then run:
 
 ```sh
 pim
+pim --help
 ```
 
 ## Usage

@@ -13,6 +13,7 @@ import (
 
 const (
 	libraryDirectory = "model-library/providers"
+	historyDirectory = "model-library/history"
 	modelsFilename   = "models.json"
 )
 
@@ -28,6 +29,11 @@ func DefaultPaths() (Paths, error) {
 // LibraryDir 返回 provider library directory。
 func (p Paths) LibraryDir() string {
 	return filepath.Join(p.AgentDir, filepath.FromSlash(libraryDirectory))
+}
+
+// HistoryDir 返回 models.json backup history directory。
+func (p Paths) HistoryDir() string {
+	return filepath.Join(p.AgentDir, filepath.FromSlash(historyDirectory))
 }
 
 // ModelsPath 返回 pi source models.json path。
